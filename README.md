@@ -70,4 +70,4 @@ Access logs contain the IP address and User Agent of each user as they connect t
 
 ## Searching Through the Extracted Data
 
-The extracted data is written to files in UTF-16 format. This means that using *grep* to search through the data isn't going to work. Instead, you could use PowerShell to search through the extracted data. See the [Analyzing Extracting Results](https://github.com/clr2of8/SlackExtract/wiki/Analyzing-Extracted-Results) wiki page for helpful hints on doing this with PowerShell.
+The extracted data is written to files in UTF-16 format. This means that using *grep* to search through the data isn't going to work. Instead, you could use PowerShell to search through the extracted data. See the [Analyzing Extracted Results](https://github.com/clr2of8/SlackExtract/wiki/Analyzing-Extracted-Results) wiki page for helpful hints on doing this with PowerShell.
