@@ -50,11 +50,7 @@
 
     .PARAMETER MaxAccessLogs
     [Optional] The maximum number of user access logs to download. The default is 100,000. The -ExtractAccessLogs parameter must be specified to download users.
-
-    .PARAMETER Proxy
-    [Optional] The web proxy to use, such as the corporate web proxy. The credentials of the user running the script will be passed for the authentication to the proxy. e.g. -Proxy http://127.0.0.1:8080
-
-    
+   
     .EXAMPLE
     
     C:\PS> Invoke-SlackExtract -SlackUrl https://slackextract.slack.com -OutputFolderName Carrie -dCookie On3pAK1fxrp%2BGrDENnmgdvEg5JwDgf%2BNclR5d2NUY0w1R01EYHFvaVdOUGV2OExDVWdZbGxnVUyFUVl0enFZd0VjTUZIeExabWZFYkJUTDVBWnlRRU84WEQ3YjRyVWUzVnFIOGlFUUhvS3B6ZVZnY1l3Q2xqTEhRSUhRNXhXaFVyaisrc3A5YWNrbWpmaWpVUGt0eTV0YzZsaWYxaVd0L1NKSWQyQ0k9JAizLCi3UrA%2BeYL6uU%2B8Zg%3D%3D
@@ -141,15 +137,11 @@
 
      [Parameter(Mandatory = $false)]
      [Switch]
-     $ExtractAccessLogs = $false,
-
-     [Parameter(Mandatory = $false)]
-     [string]
-     $Proxy = $null
-
-
+     $ExtractAccessLogs = $false
  )
 
+(New-Object System.Net.WebClient).Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
+ 
 Add-Type -AssemblyName System.Web
 
 $ua = "Mozilla"
@@ -188,12 +180,9 @@ function Shazam($apiEndpoint, $requestBody, $type, $limit, $folder){
 		{
     	    try
             {
-                if($Proxy) {
-				    $responseConversationsHistory = Invoke-RestMethod -Uri "$SlackUrl/api/$apiEndpoint" -Method Post -Body $requestBody -UserAgent $ua -TimeoutSec 600 -Proxy $Proxy -ProxyUseDefaultCredentials; sleep($delay) 
-                }
-                else {
-                    $responseConversationsHistory = Invoke-RestMethod -Uri "$SlackUrl/api/$apiEndpoint" -Method Post -Body $requestBody -UserAgent $ua -TimeoutSec 600; sleep($delay) 
-                }
+
+                $responseConversationsHistory = Invoke-RestMethod -Uri "$SlackUrl/api/$apiEndpoint" -Method Post -Body $requestBody -UserAgent $ua -TimeoutSec 600; sleep($delay) 
+
 				$exception = $false
 			}
 			catch [System.Exception]
@@ -316,12 +305,8 @@ function getFilesMetaForChannels($channelsOrGroupsMetaDir)
 	
 	    $bodyFilesList = @{token=$SlackToken; count=$limit; channel=$channel.id} 
 	    do {
-            if($Proxy){
-		        $filesList = Invoke-RestMethod -Uri "$SlackUrl/api/files.list" -Method Post -Body $bodyFilesList -UserAgent $ua -Proxy $Proxy -ProxyUseDefaultCredentials; sleep($delay) 
-            }
-            else {
-		        $filesList = Invoke-RestMethod -Uri "$SlackUrl/api/files.list" -Method Post -Body $bodyFilesList -UserAgent $ua; sleep($delay)
-            }
+            $filesList = Invoke-RestMethod -Uri "$SlackUrl/api/files.list" -Method Post -Body $bodyFilesList -UserAgent $ua; sleep($delay)
+
 
 		    Foreach ($file in $filesList.files)
 		    {
@@ -414,12 +399,9 @@ function getFilesforChannelOrGroup($channelOrGroupDir){
 			else
 			{
 				Write-Host "Downloading $fileName"
-                if($proxy){
-				    $response = Invoke-WebRequest -Uri $fileUrl -Headers $headers -UserAgent $ua -OutFile $fileName -Proxy $proxy -ProxyUseDefaultCredentials
-                }
-                else {
-                    $response = Invoke-WebRequest -Uri $fileUrl -Headers $headers -UserAgent $ua -OutFile $fileName
-                }
+
+				$response = Invoke-WebRequest -Uri $fileUrl -Headers $headers -UserAgent $ua -OutFile $fileName
+
 			}
             $filesCount = $filesCount + 1
             if ($filesCount -ge $MaxFilesPerChannel) {  Write-Host -ForegroundColor Yellow "Short circuiting file download, $MaxFilesPerChannel files downloaded. Increase MaxFilesPerChannel parameter to download more files";  break }
@@ -461,15 +443,11 @@ function getFiles
 function getSlackToken {
     Write-Host -ForegroundColor Cyan "Getting Slack Token"
     $session = getSession
-    if($proxy){
-        $response = Invoke-WebRequest -Uri "$SlackUrl/messages" -WebSession $session -UserAgent $ua -Proxy $proxy -ProxyUseDefaultCredentials
-    }
-    else{
-        $response = Invoke-WebRequest -Uri "$SlackUrl/messages" -WebSession $session -UserAgent $ua
-    }
+    $response = Invoke-WebRequest -Uri "$SlackUrl/messages" -WebSession $session -UserAgent $ua
 
 
-    if($response.toString() -match 'api_token.*?(xoxs-[0-9\-a-fA-F]*)' ){
+
+    if($response.toString() -match 'api_token.*?(xox[csxbp]-[0-9\-a-fA-F]*)' ){
         Write-Host -ForegroundColor Cyan $matches[1]
         return $matches[1]
     }
