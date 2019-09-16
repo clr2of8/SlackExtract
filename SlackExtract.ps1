@@ -137,7 +137,7 @@
 
      [Parameter(Mandatory = $false)]
      [Switch]
-     $ExtractAccessLogs = $false,
+     $ExtractAccessLogs = $false
  )
 
 (New-Object System.Net.WebClient).Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
