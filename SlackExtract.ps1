@@ -394,6 +394,14 @@ function getFilesforChannelOrGroup($channelOrGroupDir){
 
 
 			$fileUrl = $file.url_private_download
+
+			# adding a fix here for "special" files like linked google docs
+			# which Slack treats as a file but cannot be downloaded
+			if (! $fileUrl ) {
+				Write-Host "Skipping file $($file.id), as it has no downloadable URL"
+				continue
+			}
+
 			$fileName = Join-Path -Path $dirMinusMeta -ChildPath $($file.id + "_" + $fileUrl.Substring($fileUrl.LastIndexOf("/") + 1))
 			if(test-path $fileName){ Write-Host "Skipping already existing file $fileName"}
 			else
