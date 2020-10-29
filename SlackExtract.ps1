@@ -54,6 +54,9 @@
     .PARAMETER NoReplies
     [Optional] A command line switch to ignore replies to messages (i.e. don't download replies to messages). A separate web request must be made for each message with replies, so enabling this flag reduces the execution time of the script, at the expense of not fetching replies.
 
+    .PARAMETER ForceRedownload
+    [Optional] A command line switch to force the redownloading of content. No existing content will be deleted, but it may be overwritten with a more recent version (e.g: an updated message).
+
     .EXAMPLE
     
     C:\PS> Invoke-SlackExtract -SlackUrl https://slackextract.slack.com -OutputFolderName Carrie -dCookie On3pAK1fxrp%2BGrDENnmgdvEg5JwDgf%2BNclR5d2NUY0w1R01EYHFvaVdOUGV2OExDVWdZbGxnVUyFUVl0enFZd0VjTUZIeExabWZFYkJUTDVBWnlRRU84WEQ3YjRyVWUzVnFIOGlFUUhvS3B6ZVZnY1l3Q2xqTEhRSUhRNXhXaFVyaisrc3A5YWNrbWpmaWpVUGt0eTV0YzZsaWYxaVd0L1NKSWQyQ0k9JAizLCi3UrA%2BeYL6uU%2B8Zg%3D%3D
@@ -144,7 +147,11 @@
 
      [Parameter(Mandatory = $false)]
      [Switch]
-     $NoReplies = $false
+     $NoReplies = $false,
+
+     [Parameter(Mandatory = $false)]
+     [Switch]
+     $ForceRedownload = $false
  )
 
 (New-Object System.Net.WebClient).Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
@@ -235,8 +242,12 @@ function Shazam($apiEndpoint, $requestBody, $type, $limit, $folder){
             $name=$message.id 
             if($type -eq "login"){ $name = "$($message.date_last)-$($message.user_id)" }
             elseif($type -eq "message"){ $name = $message.ts}
+			# only redownload if the file doesn't exist already
+			# or if the script is overwriting files and this message is not tha parent message in a thread through the conversation.replies API
+			# since the parent message through the replies API contains less metadata than the original message through the conversation.history API
+			$isParentMessageInReplyThread = $apiEndpoint -eq "conversations.replies" -and $message.reply_count
 			$fn = Join-Path -Path $folder -ChildPath "$name.json"
-			if(!(test-path $fn)){
+			if(!(test-path $fn) -or ($ForceRedownload -and !($isParentMessageInReply))){
 				$message | ConvertTo-Json | Out-File $fn
 			}
 			else {
@@ -356,7 +367,7 @@ function getMessages($dir)
 		$skip = $false
         if($ExcludeChannelIds -contains $group.id){ continue }
         $donePath = Join-Path $dir -ChildPath "done_getting_messages_for.txt"
-        if(Test-Path $donePath)
+        if(!($ForceRedownload) -and (Test-Path $donePath))
         {
 		    foreach($dg in (gc $donePath)) # temporary short circuit because we already have this channel done
 		    {
