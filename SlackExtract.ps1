@@ -51,6 +51,9 @@
     .PARAMETER MaxAccessLogs
     [Optional] The maximum number of user access logs to download. The default is 100,000. The -ExtractAccessLogs parameter must be specified to download users.
    
+    .PARAMETER NoReplies
+    [Optional] A command line switch to ignore replies to messages (i.e. don't download replies to messages). A separate web request must be made for each message with replies, so enabling this flag reduces the execution time of the script, at the expense of not fetching replies.
+
     .EXAMPLE
     
     C:\PS> Invoke-SlackExtract -SlackUrl https://slackextract.slack.com -OutputFolderName Carrie -dCookie On3pAK1fxrp%2BGrDENnmgdvEg5JwDgf%2BNclR5d2NUY0w1R01EYHFvaVdOUGV2OExDVWdZbGxnVUyFUVl0enFZd0VjTUZIeExabWZFYkJUTDVBWnlRRU84WEQ3YjRyVWUzVnFIOGlFUUhvS3B6ZVZnY1l3Q2xqTEhRSUhRNXhXaFVyaisrc3A5YWNrbWpmaWpVUGt0eTV0YzZsaWYxaVd0L1NKSWQyQ0k9JAizLCi3UrA%2BeYL6uU%2B8Zg%3D%3D
@@ -137,7 +140,11 @@
 
      [Parameter(Mandatory = $false)]
      [Switch]
-     $ExtractAccessLogs = $false
+     $ExtractAccessLogs = $false,
+
+     [Parameter(Mandatory = $false)]
+     [Switch]
+     $NoReplies = $false
  )
 
 (New-Object System.Net.WebClient).Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
@@ -234,6 +241,11 @@ function Shazam($apiEndpoint, $requestBody, $type, $limit, $folder){
 			}
 			else {
 				if($type -ne "message"){Write-Host -ForegroundColor Yellow "Skipping already existing file: $fn"}
+			}
+			if($apiEndpoint -eq "conversations.history" -and $message.reply_count -and !($NoReplies)) {
+				$body = @{token=$SlackToken; channel = $requestBody.channel; ts=$message.ts; limit=200}
+				$repliesCount = Shazam "conversations.replies" $body "message" $maxMessagesPerChannel $messagesDir
+				Write-Host -ForegroundColor Cyan "Done getting $repliesCount replies for message $name"
 			}
 		}
         if($responseConversationsHistory.response_metadata -and $responseConversationsHistory.response_metadata.next_cursor){
