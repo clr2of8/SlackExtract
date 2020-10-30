@@ -238,6 +238,18 @@ function Shazam($apiEndpoint, $requestBody, $type, $limit, $folder){
 			$fn = Join-Path -Path $folder -ChildPath "$name.json"
 			if(!(test-path $fn)){
 				$message | ConvertTo-Json | Out-File $fn
+				if ($type -eq "user") {
+					# download user profile pictures
+					$session = getSession
+					$profileImageTypes = "original", "1024", "512", "192", "72", "48", "32", "24"
+					foreach ($imageType in $profileImageTypes) {
+						if ($message.profile."image_$imageType") {
+							$imagePath = Join-Path -Path $folder -ChildPath "$($name)_image_$($imageType).png"
+							Invoke-WebRequest -Uri $message.profile."image_$imageType" -WebSession $session -UserAgent $ua -OutFile $imagePath
+							break
+						}
+					}
+				}
 			}
 			else {
 				if($type -ne "message"){Write-Host -ForegroundColor Yellow "Skipping already existing file: $fn"}
